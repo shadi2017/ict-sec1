@@ -94,6 +94,10 @@
 
   function renderTopbar() {
     $('langLabel').textContent = state.lang === 'ar' ? 'EN' : 'ع';
+    $('avatarBtn').textContent = (displayName().trim()[0] || (state.lang === 'ar' ? 'ع' : 'S'));
+    var logoutTop = $('logoutTop');
+    if (logoutTop) logoutTop.hidden = !state.user.account;
+    $('avatarBtn').setAttribute('title', t('profileTitle'));
     $('themeToggle').querySelector('.theme-icon').textContent = state.theme === 'dark' ? '☀️' : '🌙';
     $('termLabel').textContent = termName();
     $('sidebarMeta').textContent = yearName() + ' · ' + termName();
@@ -517,6 +521,7 @@
     if (all && state.awarded.indexOf(u.id) < 0) {
       state.awarded.push(u.id); localStorage.setItem('ict-awarded', JSON.stringify(state.awarded));
       state.user.certs += 1; localStorage.setItem('ict-certs', String(state.user.certs)); awardPoints(50);
+      if (window.ICTLog) window.ICTLog('unit', u.id, 100);
       toast(state.lang === 'en' ? '🎉 Unit “' + lang(u, 'title').slice(0, 28) + '” complete — +50 pts' : '🎉 أكملت «' + lang(u, 'title').slice(0, 28) + '» — +50 نقطة');
     }
   }
@@ -550,6 +555,7 @@
     var res = $('quizResult');
     if (answered < total) { res.textContent = t('needAll'); return; }
     res.textContent = correct + '/' + total + ' ✓';
+    if (window.ICTLog) window.ICTLog('quiz', u.id + ':' + l.id, Math.round(correct / total * 100));
     if (correct === total) {
       var was = isDone(u.id, l.id); markDone(u.id, l.id);
       if (!was) { awardPoints(10); checkUnitAward(u); }
@@ -566,14 +572,41 @@
   /* ----------------------------- profile / cert ----------------------------- */
   function openProfile() {
     $('profileName').textContent = displayName(); $('profilePoints').textContent = state.user.points; $('profileCerts').textContent = state.user.certs;
-    $('profileAvatar').textContent = (displayName().trim()[0] || (state.lang === 'ar' ? 'ع' : 'S')); $('profileModal').showModal();
+    $('profileAvatar').textContent = (displayName().trim()[0] || (state.lang === 'ar' ? 'ع' : 'S'));
+    var account = state.user.account;
+    var phoneRow = $('profilePhoneRow'), gradeRow = $('profileGradeRow'), devicesRow = $('profileDevicesRow');
+    if (account) {
+      $('profilePhone').textContent = account.phone || '—';
+      $('profileGrade').textContent = account.gradeName || '—';
+      $('profileDevices').textContent = (state.user.devices || 1) + ' / ' + (state.user.maxDevices || 2);
+      phoneRow.hidden = false; gradeRow.hidden = false; devicesRow.hidden = false;
+      $('profileDeviceNote').hidden = false;
+      $('logoutBtn').hidden = false;
+      $('profileName').classList.remove('editable');
+    } else {
+      phoneRow.hidden = true; gradeRow.hidden = true; devicesRow.hidden = true;
+      $('profileDeviceNote').hidden = true;
+      $('logoutBtn').hidden = true;
+      $('profileName').classList.add('editable');
+    }
+    $('profileModal').showModal();
   }
-  function renameUser() { var n = prompt(t('name') + ':', displayName()); if (n && n.trim()) { state.user.name = n.trim(); localStorage.setItem('ict-name', state.user.name); openProfile(); } }
+  function renameUser() {
+    if (state.user.account) return; // الاسم جاي من الحساب المسجّل
+    var n = prompt(t('name') + ':', displayName());
+    if (n && n.trim()) { state.user.name = n.trim(); localStorage.setItem('ict-name', state.user.name); openProfile(); render(); }
+  }
+  function logoutUser() {
+    if (!window.ICTAuth || !ICTAuth.logout) return;
+    if (!confirm(t('logoutConfirm'))) return;
+    ICTAuth.logout();
+  }
   function resetAll() {
     if (!confirm(t('resetConfirm'))) return;
     state.progress = {}; state.awarded = []; state.picks = {}; state.tutor = {}; state.user.points = 0; state.user.certs = 0;
     ['ict-progress-v2', 'ict-awarded', 'ict-points', 'ict-certs'].forEach(function (k) { localStorage.removeItem(k); });
     $('profileModal').close(); render(); toast(t('resetDone'));
+    if (state.user.account && window.ICTAuth && ICTAuth.sync) ICTAuth.sync();
   }
   function openCert() {
     var tot = totalLessons(), done = doneLessons(), complete = tot > 0 && done === tot;
@@ -599,6 +632,28 @@
     w.document.close();
   }
 
+  /* --------------- حساب الطالب القادم من السيرفر (auth.js) --------------- */
+  function applyAccount(account, extra) {
+    if (!account) return;
+    var first = !state.user.account;
+    state.user.account = account;
+    if (extra) { state.user.devices = extra.devices; state.user.maxDevices = extra.maxDevices; }
+    if (account.name) state.user.name = account.name;
+    state.user.points = Math.max(state.user.points, account.points || 0);
+    state.user.certs = Math.max(state.user.certs, account.certs || 0);
+    state.progress = Object.assign({}, account.progress || {}, state.progress);
+    localStorage.setItem('ict-name', state.user.name);
+    localStorage.setItem('ict-points', String(state.user.points));
+    localStorage.setItem('ict-certs', String(state.user.certs));
+    saveProgress();
+    if (first && account.grade) {
+      var index = -1;
+      CURRICULUM.years.forEach(function (y, i) { if (y.id === account.grade) index = i; });
+      if (index >= 0) { state.year = index; state.term = 0; }
+    }
+    render();
+  }
+
   /* ----------------------------- init ----------------------------- */
   function checkTutor() {
     fetch('/api/health').then(function (r) { return r.ok ? r.json() : { ready: false }; })
@@ -621,6 +676,8 @@
     $('closeDemo').addEventListener('click', closeDemo);
     $('demoModal').addEventListener('close', function () { stopActiveWidget(); var b = $('demoBody'); if (b) b.innerHTML = ''; });
     $('resetProgress').addEventListener('click', resetAll);
+    $('logoutBtn').addEventListener('click', logoutUser);
+    $('logoutTop').addEventListener('click', logoutUser);
     $('downloadCert').addEventListener('click', downloadCert);
     $('brandHome').addEventListener('click', function (e) { e.preventDefault(); state.view = 'lessons'; state.unit = null; state.lesson = null; render(); scrollTop(); });
     $('profileName').addEventListener('click', renameUser);
@@ -638,6 +695,9 @@
     openDemo: openDemo, closeDemo: closeDemo,
     toggleDone: toggleDone, pick: pick, checkQuiz: checkQuiz, runCode: runCode, awardPoints: awardPoints,
     toggleLang: toggleLang, toggleTheme: toggleTheme, askTutor: askTutor, sendTutor: sendTutor,
+    applyAccount: applyAccount, openProfile: openProfile, logoutUser: logoutUser,
+    getState: function () { return { year: state.year, term: state.term, unit: state.unit, lesson: state.lesson, view: state.view, lab: state.lab, game: state.game }; },
+    getUser: function () { return { name: state.user.name, points: state.user.points, certs: state.user.certs }; },
     getLang: function () { return state.lang; }, getYear: function () { return state.year; }, getTerm: function () { return state.term; }
   };
 

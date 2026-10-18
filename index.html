@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-gate="checking">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -24,6 +24,8 @@
   <script src="demos.js" defer></script>
   <script src="engine.js" defer></script>
   <script src="app.js" defer></script>
+  <script src="auth.js" defer></script>
+  <script src="admin.js" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -44,6 +46,7 @@
       </button>
       <button class="icon-btn" id="themeToggle" aria-label="تغيير وضع العرض" title="الليلي/النهاري" data-i18n-aria="ariaTheme" data-i18n-title="titleTheme"><span class="theme-icon">🌙</span></button>
       <button class="icon-btn lang-btn" id="langToggle" aria-label="تغيير اللغة" title="عربي/English" data-i18n-aria="ariaLang" data-i18n-title="titleLang"><span id="langLabel">EN</span></button>
+      <button class="icon-btn" id="logoutTop" aria-label="تسجيل الخروج" title="تسجيل الخروج" data-i18n-aria="authLogout" data-i18n-title="authLogout" hidden><span>⏏</span></button>
       <button class="avatar" id="avatarBtn" aria-label="الملف الشخصي" data-i18n-aria="ariaProfile">ع</button>
     </div>
   </header>
@@ -75,12 +78,18 @@
       <div class="container" id="container"></div>
       <footer class="page-footer">
         <span data-i18n="footer">تعلّم بالتجربة — كل محاولة تقرّبك من الإتقان.</span>
-        <span>ICT · SEC 1 · T1</span>
+        <span class="footer-right"><span>ICT · SEC 1 · T1</span>
+          <button type="button" class="link-btn" id="adminLink" data-i18n="adminLink">دخول المدرس</button></span>
       </footer>
     </main>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- بوابة الحسابات: بتظهر لو الطالب مش مسجّل أو حسابه لسه محتاج تفعيل -->
+  <div class="auth-gate" id="authGate" hidden></div>
+  <!-- لوحة المدرس -->
+  <div class="admin-panel" id="adminPanel" hidden></div>
 
   <dialog class="modal" id="profileModal">
     <div class="modal-content">
@@ -91,9 +100,16 @@
           <div class="profile-field"><strong data-i18n="name">الاسم</strong><span id="profileName">طالب/ـة ICT</span></div>
           <div class="profile-field"><strong data-i18n="points">النقاط</strong><span><b id="profilePoints">0</b> XP</span></div>
           <div class="profile-field"><strong data-i18n="certs">الشهادات</strong><span id="profileCerts">0</span></div>
+          <div class="profile-field" id="profilePhoneRow" hidden><strong data-i18n="authPhone">رقم الموبايل</strong><span id="profilePhone"></span></div>
+          <div class="profile-field" id="profileGradeRow" hidden><strong data-i18n="authGradeLbl">الصف</strong><span id="profileGrade"></span></div>
+          <div class="profile-field" id="profileDevicesRow" hidden><strong data-i18n="authDevices">الأجهزة</strong><span id="profileDevices"></span></div>
         </div>
       </div>
-      <div style="padding:0 26px 22px"><button class="btn-outline" id="resetProgress" style="width:100%"><span data-i18n="reset">إعادة تعيين التقدم</span></button></div>
+      <p class="profile-note" id="profileDeviceNote" hidden data-i18n="authDeviceNote">مسموح بجهازين لكل حساب.</p>
+      <div class="profile-actions">
+        <button class="btn-outline" id="resetProgress" style="width:100%"><span data-i18n="reset">إعادة تعيين التقدم</span></button>
+        <button class="btn-primary" id="logoutBtn" hidden><span data-i18n="authLogout">خروج</span></button>
+      </div>
     </div>
   </dialog>
 

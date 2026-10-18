@@ -1,7 +1,6 @@
 {
   "framework": null,
   "functions": {
-    "api/tutor.js": { "maxDuration": 30 },
-    "api/health.js": { "maxDuration": 30 }
+    "api/**/*.js": { "maxDuration": 30 }
   }
 }
