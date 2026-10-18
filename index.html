@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f3d63">
+  <title>ICT ثانوي | منصة تكنولوجيا المعلومات والاتصالات</title>
+  <meta name="description" content="منصة تعليمية احترافية لمادة تكنولوجيا المعلومات والاتصالات للمرحلة الثانوية.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="data-units-1.js" defer></script>
+  <script src="data-units-2.js" defer></script>
+  <script src="data-units-3.js" defer></script>
+  <script src="data-en-1.js" defer></script>
+  <script src="data-en-2.js" defer></script>
+  <script src="data-en-3.js" defer></script>
+  <script src="data-en-projects.js" defer></script>
+  <script src="data.js" defer></script>
+  <script src="labs.js" defer></script>
+  <script src="games.js" defer></script>
+  <script src="projects.js" defer></script>
+  <script src="demos.js" defer></script>
+  <script src="engine.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="nav-toggle" id="navToggle" aria-label="فتح القائمة" data-i18n-aria="ariaMenu"><span></span><span></span><span></span></button>
+      <a class="brand" href="#" id="brandHome">
+        <div class="brand-mark" aria-hidden="true">ICT</div>
+        <div class="brand-text">
+          <strong data-i18n="brand">منصة ICT الثانوية</strong>
+          <small data-i18n="brandSub">تكنولوجيا المعلومات والاتصالات</small>
+        </div>
+      </a>
+    </div>
+    <div class="topbar-right">
+      <div class="year-switch" id="yearSwitch" role="group" aria-label="اختيار الصف" data-i18n-aria="ariaYear"></div>
+      <button class="term-btn" id="termToggle" type="button" title="تبديل الترم" data-i18n-title="titleTerm">
+        <span id="termLabel">الترم الأول</span>
+      </button>
+      <button class="icon-btn" id="themeToggle" aria-label="تغيير وضع العرض" title="الليلي/النهاري" data-i18n-aria="ariaTheme" data-i18n-title="titleTheme"><span class="theme-icon">🌙</span></button>
+      <button class="icon-btn lang-btn" id="langToggle" aria-label="تغيير اللغة" title="عربي/English" data-i18n-aria="ariaLang" data-i18n-title="titleLang"><span id="langLabel">EN</span></button>
+      <button class="avatar" id="avatarBtn" aria-label="الملف الشخصي" data-i18n-aria="ariaProfile">ع</button>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <strong id="sidebarTitle" data-i18n="unitsTitle">الوحدات الدراسية</strong>
+        <small id="sidebarMeta">أولى ثانوي · الترم الأول</small>
+      </div>
+      <div class="section-nav" id="sectionNav">
+        <button type="button" data-view="lessons" data-i18n="navLessons">الدروس</button>
+        <button type="button" data-view="labs" data-i18n="navLabs">المعامل</button>
+        <button type="button" data-view="games" data-i18n="navGames">الألعاب</button>
+        <button type="button" data-view="projects" data-i18n="navProjects">المشاريع</button>
+      </div>
+      <nav class="unit-list" id="unitList" aria-label="الوحدات" data-i18n-aria="ariaUnits"></nav>
+      <div class="sidebar-footer">
+        <div class="progress-card">
+          <div class="progress-label" data-i18n="overall">تقدمك العام</div>
+          <div class="progress-track"><div id="overallProgressBar" class="progress-fill"></div></div>
+          <div class="progress-text" id="overallProgressText">0%</div>
+        </div>
+        <button class="sidebar-btn" id="certBtn" data-i18n="certificate">شهادة الإكمال</button>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+      <div class="container" id="container"></div>
+      <footer class="page-footer">
+        <span data-i18n="footer">تعلّم بالتجربة — كل محاولة تقرّبك من الإتقان.</span>
+        <span>ICT · SEC 1 · T1</span>
+      </footer>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <dialog class="modal" id="profileModal">
+    <div class="modal-content">
+      <div class="modal-head"><h2 data-i18n="profileTitle">ملفك الشخصي</h2><button class="modal-close" id="closeProfile" aria-label="إغلاق" data-i18n-aria="ariaClose">×</button></div>
+      <div class="profile-grid">
+        <div class="avatar-big" id="profileAvatar">ع</div>
+        <div class="profile-info">
+          <div class="profile-field"><strong data-i18n="name">الاسم</strong><span id="profileName">طالب/ـة ICT</span></div>
+          <div class="profile-field"><strong data-i18n="points">النقاط</strong><span><b id="profilePoints">0</b> XP</span></div>
+          <div class="profile-field"><strong data-i18n="certs">الشهادات</strong><span id="profileCerts">0</span></div>
+        </div>
+      </div>
+      <div style="padding:0 26px 22px"><button class="btn-outline" id="resetProgress" style="width:100%"><span data-i18n="reset">إعادة تعيين التقدم</span></button></div>
+    </div>
+  </dialog>
+
+  <dialog class="modal" id="certModal">
+    <div class="modal-content cert">
+      <div class="modal-head"><h2 data-i18n="certTitle">شهادة إتمام</h2><button class="modal-close" id="closeCert" aria-label="إغلاق" data-i18n-aria="ariaClose">×</button></div>
+      <div class="cert-frame">
+        <div class="cert-seal">ICT</div>
+        <h2 class="cert-title" data-i18n="certHead">شهادة إتمام</h2>
+        <p class="cert-sub" data-i18n="certSub">تُمنح هذه الشهادة إلى</p>
+        <h3 class="cert-name" id="certName">طالب/ـة ICT</h3>
+        <p class="cert-course" data-i18n="certCourse">لإتمامه بنجاح دورة</p>
+        <h4 class="cert-unit" id="certUnit"></h4>
+        <p class="cert-date" id="certDate"></p>
+      </div>
+      <div style="padding:18px 26px 24px"><button class="btn-primary" id="downloadCert" style="width:100%" data-i18n="certDownload">تحميل / طباعة الشهادة</button></div>
+    </div>
+  </dialog>
+
+  <dialog class="modal" id="demoModal">
+    <div class="modal-content demo-content">
+      <div class="modal-head"><h2 id="demoTitle">ديمو المشروع</h2><button class="modal-close" id="closeDemo" aria-label="إغلاق" data-i18n-aria="ariaClose">×</button></div>
+      <div class="demo-body" id="demoBody"></div>
+    </div>
+  </dialog>
+</body>
+</html>
