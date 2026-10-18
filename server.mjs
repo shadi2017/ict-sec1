@@ -15,13 +15,16 @@ const mimeTypes = {
 };
 
 function loadLocalEnv() {
-  try {
-    const file = readFileSync(path.join(root, '..', '.env'), 'utf8');
-    for (const line of file.split(/\r?\n/)) {
-      const match = line.match(/^\s*([A-Z][A-Z0-9_]*)\s*=\s*(.*?)\s*$/);
-      if (match && !process.env[match[1]]) process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, '');
-    }
-  } catch {}
+  // read .env from the project folder first, then from the parent folder (legacy layout)
+  for (const file of [path.join(root, '.env'), path.join(root, '..', '.env')]) {
+    try {
+      const text = readFileSync(file, 'utf8');
+      for (const line of text.split(/\r?\n/)) {
+        const match = line.match(/^\s*([A-Z][A-Z0-9_]*)\s*=\s*(.*?)\s*$/);
+        if (match && !process.env[match[1]]) process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, '');
+      }
+    } catch {}
+  }
 }
 
 loadLocalEnv();

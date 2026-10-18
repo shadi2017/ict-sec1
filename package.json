@@ -1,0 +1,9 @@
+{
+  "name": "ict-sec1",
+  "version": "1.0.0",
+  "private": true,
+  "description": "منصة ICT — أولى ثانوي · الترم الأول (ثنائية اللغة: عربي / English)",
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}
