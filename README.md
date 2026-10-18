@@ -72,7 +72,20 @@ GEMINI_MODEL=gemini-3.8-flash
 
 **GitHub Pages لوحده مش كفاية** — بيقدّم ملفات ثابتة بس (مفيش Node)، فالـ AI هيرجع «وضع محلي». لازم استضافة بتشغّل Node.
 
-### Render (مجاني)
+### Vercel (مجاني 100% · بدون كارت) — الموصى به
+1. ادخل https://vercel.com وسجّل بحساب GitHub.
+2. **Add New → Project** → اختار ريبو **`shadi2017/ict-sec1`** → **Import**.
+3. في **Environment Variables** ضيف:
+   - `GEMINI_API_KEY` = المفتاح بتاعك
+   - (اختياري) `GEMINI_MODEL` = `gemini-3.8-flash`
+4. دوس **Deploy** — هتاخد رابط زي `https://ict-sec1.vercel.app`.
+5. افتح الرابط: `/api/health` هيرجّع `{"ready":true}` والمدرّس هيبقى **متصل**.
+
+- الملفات الثابتة بتتقدّم من جذر الريبو، والدوال في مجلد `api/` (`/api/tutor` و`/api/health`).
+- المفتاح بيتحط في إعدادات Vercel بس — **مش بيترفع** على GitHub.
+- كل `git push` على `main` بيعيد النشر تلقائيًا.
+
+### Render (مجاني، لكن بيطلب كارت للتحقق من الهوية)
 1. في Render: **New → Blueprint** → اختار ريبو `shadi2017/ict-sec1` (ملف `render.yaml` موجود وجاهز).
 2. وقت الإعداد هيطلب منك القيم السرّية — حط:
    - `GEMINI_API_KEY` = المفتاح بتاعك (من https://aistudio.google.com/apikey)
@@ -101,9 +114,13 @@ ict-sec1/
 ├── demos.js          # ديمو كل مشروع (window.ICT_PROJECT_DEMOS) — ثنائي اللغة
 ├── engine.js         # مفسّر بايثون مصغّر (window.ICTPython.run)
 ├── app.js            # منطق الواجهة (render-from-state) + واجهة window.ICT
-├── server.mjs        # خادم Node: الملفات الثابتة + /api/tutor + /api/health
+├── server.mjs        # خادم Node محلي: الملفات الثابتة + /api/tutor + /api/health
+├── lib/tutor.mjs     # منطق المدرّس الذكي (مشترك بين server.mjs و api/)
+├── api/tutor.js      # Vercel function: POST /api/tutor
+├── api/health.js     # Vercel function: GET /api/health
 ├── package.json      # تشغيل المشروع: npm start
 ├── .env.example      # قالب المفاتيح (انسخه إلى .env)
+├── vercel.json       # إعداد Vercel (مدة الدالة)
 └── render.yaml       # إعداد النشر على Render (Blueprint)
 ```
 
