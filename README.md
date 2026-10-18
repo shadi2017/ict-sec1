@@ -84,6 +84,22 @@ GEMINI_MODEL=gemini-3.8-flash
 - الملفات الثابتة بتتقدّم من جذر الريبو، والدوال في مجلد `api/` (`/api/tutor` و`/api/health`).
 - المفتاح بيتحط في إعدادات Vercel بس — **مش بيترفع** على GitHub.
 - كل `git push` على `main` بيعيد النشر تلقائيًا.
+- دالة المدرّس ممكن تاخد لحد ~30 ثانية، وده مضبوط في `vercel.json` (`maxDuration: 30`).
+
+> ⚠️ **مهم جدًا:** في `vercel.json` فيه `"framework": null` — ده **إجباري**.
+> لو Vercel اكتشف إطار عمل تلقائيًا (زي Node) هيتوقّع مجلد `public/` أو `dist/`،
+> وساعتها **كل الروابط (حتى `/styles.css`) هترجّع خطأ 500 `FUNCTION_INVOCATION_FAILED`**
+> لأن مفيش ملفات ثابتة بتتقدّم خالص. `null` بتخلّي الإعداد **Other**، فيتقدّم
+> الملفات من جذر المشروع زي ما هو مطلوب.
+>
+> ولو حصل نفس الخطأ تاني: اتأكد من **Settings → Build & Development Settings**
+> إن **Framework Preset = Other**، و**Root Directory** فاضية، و**Output Directory** فاضية.
+
+#### حل مشكلة 500 `FUNCTION_INVOCATION_FAILED` (لو رجعت تاني)
+1. **Build Logs** → اتأكد إن البناء نجح ومفيش رسالة `No Output Directory named "public" found`.
+2. **Runtime Logs** → دي بتوريك الخطأ الحقيقي جوه الدالة (مثلاً `Cannot find module`).
+3. اتأكد إن `GEMINI_API_KEY` مضاف في **Settings → Environment Variables** (لازم تعمل Redeploy بعد إضافته).
+4. من سطر الأوامر (بعد `npx vercel login`): `npx vercel logs --request-id <ID>`.
 
 ### Render (مجاني، لكن بيطلب كارت للتحقق من الهوية)
 1. في Render: **New → Blueprint** → اختار ريبو `shadi2017/ict-sec1` (ملف `render.yaml` موجود وجاهز).
@@ -120,7 +136,8 @@ ict-sec1/
 ├── api/health.js     # Vercel function: GET /api/health
 ├── package.json      # تشغيل المشروع: npm start
 ├── .env.example      # قالب المفاتيح (انسخه إلى .env)
-├── vercel.json       # إعداد Vercel (مدة الدالة)
+├── vercel.json       # إعداد Vercel: framework=null (إجباري) + مدة الدالة 30 ثانية
+├── .vercelignore     # ملفات مش محتاجة تترفع على Vercel (server.mjs، render.yaml، ...)
 └── render.yaml       # إعداد النشر على Render (Blueprint)
 ```
 
