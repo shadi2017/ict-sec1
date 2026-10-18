@@ -1,0 +1,9 @@
+# Vercel ignores these: the app is served as static files + api/ functions.
+server.mjs
+render.yaml
+README.md
+.env
+.env.example
+.git
+node_modules
+*.log
