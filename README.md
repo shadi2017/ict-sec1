@@ -68,6 +68,20 @@ GEMINI_MODEL=gemini-3.8-flash
 
 > ⚠️ **مهم:** المدرّس الذكي بيشتغل لما تفتح الصفحة من خادم المشروع نفسه (`http://localhost:4173`). لو فتحتها من سيرفر ملفات ثابتة (زي `python -m http.server`) أو من `file://`، مش هيكون فيه `/api/tutor` والواجهة هتعرض **«وضع محلي»**.
 
+## النشر (عشان المدرّس الذكي يشتغل أونلاين)
+
+**GitHub Pages لوحده مش كفاية** — بيقدّم ملفات ثابتة بس (مفيش Node)، فالـ AI هيرجع «وضع محلي». لازم استضافة بتشغّل Node.
+
+### Render (مجاني)
+1. في Render: **New → Blueprint** → اختار ريبو `shadi2017/ict-sec1` (ملف `render.yaml` موجود وجاهز).
+2. وقت الإعداد هيطلب منك القيم السرّية — حط:
+   - `GEMINI_API_KEY` = المفتاح بتاعك (من https://aistudio.google.com/apikey)
+3. دوس Deploy، وهتاخد رابط زي `https://ict-sec1.onrender.com`.
+4. افتح الرابط — `/api/health` هيرجّع `{"ready":true}` والمدرّس هيبقى **متصل**.
+
+- المفتاح **مش بيترفع** على GitHub (ملف `.env` متجاهل) — بيتحط في إعدادات الاستضافة بس.
+- الخطة المجانية بتنام بعد خمول، فأول فتح بعد فترة ممكن ياخد ~30 ثانية.
+
 ## هيكل الملفات
 ```
 ict-sec1/
@@ -87,7 +101,10 @@ ict-sec1/
 ├── demos.js          # ديمو كل مشروع (window.ICT_PROJECT_DEMOS) — ثنائي اللغة
 ├── engine.js         # مفسّر بايثون مصغّر (window.ICTPython.run)
 ├── app.js            # منطق الواجهة (render-from-state) + واجهة window.ICT
-└── server.mjs        # خادم Node: الملفات الثابتة + /api/tutor + /api/health
+├── server.mjs        # خادم Node: الملفات الثابتة + /api/tutor + /api/health
+├── package.json      # تشغيل المشروع: npm start
+├── .env.example      # قالب المفاتيح (انسخه إلى .env)
+└── render.yaml       # إعداد النشر على Render (Blueprint)
 ```
 
 ## معمارية الواجهة

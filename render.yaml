@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: ict-sec1
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.8-flash
+      - key: GEMINI_FALLBACK_MODELS
+        value: gemini-3.5-flash,gemini-flash-latest,gemini-2.5-flash
+      - key: NODE_ENV
+        value: production

@@ -275,8 +275,10 @@ const server = http.createServer(async (request, response) => {
 });
 
 const port = Number(process.env.PORT || 4173);
-const host = process.env.HOST || (process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1');
+// listen on all interfaces when hosted (Render sets RENDER=true, or NODE_ENV=production);
+// locally stay on 127.0.0.1 unless HOST is set explicitly
+const host = process.env.HOST || ((process.env.RENDER || process.env.NODE_ENV === 'production') ? '0.0.0.0' : '127.0.0.1');
 server.listen(port, host, () => {
   console.log(`ICT Secondary running at http://${host}:${port}`);
-  console.log(activeKey() ? `AI tutor: configured (${provider()})` : 'AI tutor: needs GEMINI_API_KEY or OPENAI_API_KEY in ../.env');
+  console.log(activeKey() ? `AI tutor: configured (${provider()})` : 'AI tutor: needs GEMINI_API_KEY or OPENAI_API_KEY in .env');
 });
