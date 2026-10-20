@@ -153,6 +153,15 @@ GEMINI_MODEL=gemini-3.8-flash
 - المفتاح **مش بيترفع** على GitHub (ملف `.env` متجاهل) — بيتحط في إعدادات الاستضافة بس.
 - الخطة المجانية بتنام بعد خمول، فأول فتح بعد فترة ممكن ياخد ~30 ثانية.
 
+## النسخ الاحتياطي اليومي (Supabase → تليجرام + Drive + إيميل)
+
+- كل يوم **1:00 ص** بتوقيت القاهرة، GitHub Actions بيشغّل `tools/backup/backup.mjs`.
+- بيسحب `students` + `devices` + `events`، بيشفّرهم (AES-256-GCM)، وبيرفعهم على
+  **تليجرام** و**Google Drive** و**إيميل**، وكمان بيحفظ نسخة كـ Actions artifact (14 يوم).
+- الاسترجاع: `node tools/backup/restore.mjs <الملف>` → بيطلّع `restore.sql` جاهز للصق في Supabase.
+- الإعداد مرة واحدة بس (بوت تليجرام، حساب خدمة Drive، مفتاح Resend، وأسرار GitHub):
+  **[tools/backup/README.md](tools/backup/README.md)**.
+
 ## هيكل الملفات
 ```
 ict-sec1/
@@ -188,6 +197,8 @@ ict-sec1/
 ├── .env.example      # قالب المفاتيح (انسخه إلى .env)
 ├── vercel.json       # إعداد Vercel: framework=null (إجباري) + مدة الدوال 30 ثانية
 ├── .vercelignore     # ملفات مش محتاجة تترفع على Vercel (server.mjs، render.yaml، ...)
+├── .github/workflows/backup.yml # النسخة الاحتياطية اليومية (cron 1:00 ص)
+├── tools/backup/     # سكربت الباك أب + الاسترجاع (شوف tools/backup/README.md)
 └── render.yaml       # إعداد النشر على Render (Blueprint)
 ```
 

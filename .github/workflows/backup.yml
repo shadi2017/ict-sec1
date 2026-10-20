@@ -1,0 +1,56 @@
+name: Database backup
+
+# النسخة الاحتياطية اليومية لقاعدة بيانات Supabase.
+# الـ cron بتوقيت UTC، والـ script نفسه بيتأكد إنها الساعة 1 بتوقيت القاهرة
+# (مصر بتغيّر التوقيت صيفًا/شتويًا، فبنغطي الحالتين بميعادين).
+on:
+  schedule:
+    - cron: '0 22,23 * * *' # 22:00 UTC = 01:00 بالقاهرة (صيفًا) · 23:00 UTC = 01:00 بالقاهرة (شتويًا)
+  workflow_dispatch: # تشغيل يدوي للتجربة
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run backup
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+          GDRIVE_SA_JSON: ${{ secrets.GDRIVE_SA_JSON }}
+          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          BACKUP_EMAIL_TO: ${{ secrets.BACKUP_EMAIL_TO }}
+          BACKUP_EMAIL_FROM: ${{ secrets.BACKUP_EMAIL_FROM }}
+        run: node tools/backup/backup.mjs
+
+      # نسخة رابعة احتياطية جوه GitHub نفسه (بتتمسح تلقائيًا بعد 14 يوم).
+      - name: Keep a copy in Actions artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ict-db-${{ github.run_number }}
+          path: .data/backups/
+          retention-days: 14
+          if-no-files-found: ignore

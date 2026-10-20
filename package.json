@@ -8,6 +8,9 @@
     "node": "22.x"
   },
   "scripts": {
-    "start": "node server.mjs"
+    "start": "node server.mjs",
+    "backup": "node tools/backup/backup.mjs",
+    "backup:force": "node tools/backup/backup.mjs --force",
+    "backup:restore": "node tools/backup/restore.mjs"
   }
 }

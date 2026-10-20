@@ -5,6 +5,8 @@ README.md
 .env
 .env.example
 .git
+.github
+tools
 .data
 node_modules
 *.log
