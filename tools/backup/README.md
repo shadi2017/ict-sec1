@@ -59,6 +59,23 @@ schtasks /Delete /TN "ICT-Daily-Backup" /F           # حذف
   (Task Scheduler → Run whether user is logged on or not) — وده محتاج Admin.
 - النسخة المحلية **مشفّرة** بنفس `BACKUP_PASSPHRASE`.
 
+### فحص الصحة (تنبيه تلقائي)
+
+مهمة تانية اسمها `ICT-Backup-Health` بتشتغل كل يوم **10:00 ص** وبتتأكد إن:
+
+- آخر نسخة محلية عمرها أقل من 30 ساعة.
+- آخر نسخة **بتتفك فعلًا** (تشفير + gzip + JSON سليم).
+- في نسخة على Drive عمرها أقل من 30 ساعة.
+
+لو أي واحدة فشلت → **رسالة تنبيه على تليجرام** فيها السبب.
+السجل: `.data\backups\health.log`
+
+```powershell
+schtasks /Query /TN "ICT-Backup-Health" /FO LIST /V
+schtasks /Run   /TN "ICT-Backup-Health"
+npm run backup:health
+```
+
 ---
 
 ## الملفات
@@ -67,6 +84,8 @@ schtasks /Delete /TN "ICT-Daily-Backup" /F           # حذف
 |---|---|
 | `backup.mjs` | السكربت الرئيسي (سحب → تشفير → رفع) |
 | `run-local.ps1` | مشغّل المهمة المجدولة (نسخة كاملة + سجل) |
+| `health.mjs` | فحص الصحة (عمر النسخة + فك التشفير + وجودها على Drive) |
+| `run-health.ps1` | مشغّل فحص الصحة للمهمة المجدولة |
 | `telegram-id.mjs` | مساعد لجلب `TELEGRAM_CHAT_ID` من التوكن (`npm run telegram:id`) |
 | `drive-setup.mjs` | بديل لحساب الخدمة (Shared Drives فقط) — `npm run backup:drive` |
 | `lib/dump.mjs` | قراءة جداول Supabase عبر REST |

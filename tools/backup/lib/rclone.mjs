@@ -47,6 +47,16 @@ export async function rcloneUpload({ remote, folder, localFile, filename }) {
   return { ok: true, via: 'rclone', path: destination };
 }
 
+export async function rcloneList({ remote, folder }) {
+  const base = basePath(remote, folder);
+  const { stdout } = await exec(RCLONE, ['lsf', base, '--files-only', '--log-level', 'ERROR'], {
+    timeout: 2 * 60_000,
+    windowsHide: true,
+    maxBuffer: 10 * 1024 * 1024
+  });
+  return String(stdout || '').split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+}
+
 export async function rclonePrune({ remote, folder, keepDays, prefix }) {
   const base = basePath(remote, folder);
   const { stdout } = await exec(

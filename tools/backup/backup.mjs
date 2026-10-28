@@ -10,12 +10,12 @@
 //           → رفع على تليجرام + Google Drive + إيميل، مع نسخة محلية.
 // ============================================================
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync, appendFileSync } from 'node:fs';
-import { gzipSync } from 'node:zlib';
+import { gzipSync, gunzipSync } from 'node:zlib';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { dumpAll, TABLES } from './lib/dump.mjs';
-import { encrypt } from './lib/box.mjs';
+import { encrypt, decrypt } from './lib/box.mjs';
 import { sendToTelegram } from './lib/telegram.mjs';
 import { loadServiceAccount, getAccessToken, uploadToDrive, pruneDrive } from './lib/drive.mjs';
 import { rcloneUpload, rclonePrune } from './lib/rclone.mjs';
@@ -120,6 +120,11 @@ async function main() {
   const removedLocal = pruneLocal();
   log(`   نسخة محلية: ${localFile}${removedLocal.length ? ` (اتمسح ${removedLocal.length} قديمة)` : ''}`);
 
+  // تحقق فوري: بنقرا الملف من الديسك ونفكّه ونقارن الأرقام.
+  // لو حصلت أي مشكلة (تشفير/ضغط/كتابة) بنوقف قبل ما نرفع نسخة تالفة.
+  verifyBackupFile(localFile, passphrase, dump.counts);
+  log('   ✅ تحقق: الملف بيتفك والأرقام مطابقة.');
+
   const summary = {
     filename,
     createdAt: payload.createdAt,
@@ -127,6 +132,7 @@ async function main() {
     counts: payload.counts,
     size: humanSize(encoded.length),
     encrypted: Boolean(passphrase),
+    verified: true,
     targets: {}
   };
 
@@ -218,6 +224,40 @@ async function driveUpload(filename, bytes, summary, localFile) {
   }
   summary.driveLink = uploaded.link;
   return { ok: true, ...uploaded, pruned: pruned.deleted.length };
+}
+
+/**
+ * يتأكد إن الملف اللي اتكتب فعلًا بيتفك وبيحتوي نفس عدد الصفوف.
+ * أي خلل هنا معناه إن النسخة مش صالحة — فبنوقف بدل ما نرفعها.
+ */
+function verifyBackupFile(filePath, passphrase, expectedCounts) {
+  const bytes = readFileSync(filePath);
+  let plain;
+  try {
+    plain = passphrase ? decrypt(bytes, passphrase) : bytes;
+  } catch (error) {
+    throw new Error(`التحقق فشل — النسخة الجديدة مش بتتفك: ${error.message}`);
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(gunzipSync(plain).toString('utf8'));
+  } catch (error) {
+    throw new Error(`التحقق فشل — محتوى النسخة مش JSON صالح: ${error.message}`);
+  }
+
+  if (parsed.format !== 'ict-backup-v1') {
+    throw new Error(`التحقق فشل — صيغة غير متوقعة: ${parsed.format}`);
+  }
+
+  for (const [table, expected] of Object.entries(expectedCounts)) {
+    const actual = Array.isArray(parsed.tables?.[table]) ? parsed.tables[table].length : -1;
+    if (actual !== expected) {
+      throw new Error(`التحقق فشل — جدول ${table}: متوقع ${expected} صف، الموجود ${actual}.`);
+    }
+  }
+
+  return true;
 }
 
 function pruneLocal() {

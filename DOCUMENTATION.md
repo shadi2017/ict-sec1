@@ -302,12 +302,15 @@ npm start            # node server.mjs
 | **GitHub Actions** | نسخة سحابية احتياطية (14 يوم) | `.github/workflows/backup.yml` |
 
 - التشفير **AES-256-GCM** بمفتاح مشتق من `BACKUP_PASSPHRASE` — ممنوع رفع نسخة غير مشفّرة.
+- **تحقق تلقائي:** كل نسخة بتتفك وتتراجع أرقامها قبل الرفع (مستحيل ترفع نسخة تالفة).
+- **فحص يومي 10:00 ص:** يتأكد إن آخر نسخة حديثة وبتتفك وموجودة على Drive، وبيبعت تنبيه لو فيه مشكلة.
 - الاسترجاع: `node tools/backup/restore.mjs <الملف>` → يطلّع `data.json` + `restore.sql`.
 - التفاصيل الكاملة: [`tools/backup/README.md`](tools/backup/README.md).
 
 ```powershell
 npm run backup:force      # نسخة + رفع على كل الوجهات المضبوطة
 npm run backup:local      # نسخة محلية بس
+npm run backup:health     # فحص الصحة (وتنبيه تليجرام لو فيه مشكلة)
 npm run backup:restore    # استرجاع
 ```
 
