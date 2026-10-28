@@ -16,7 +16,7 @@ Add-Content -Path $log -Value "[$stamp] --- start ---" -Encoding UTF8
 
 Push-Location $root
 try {
-    $output = & $node $backup --force 2>&1
+    $output = & $node $backup --force --no-telegram 2>&1
     $code = $LASTEXITCODE
     foreach ($line in $output) { Add-Content -Path $log -Value $line -Encoding UTF8 }
 } catch {

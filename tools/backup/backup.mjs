@@ -73,6 +73,8 @@ async function main() {
   // نسخة محلية بس (من غير رفع على تليجرام/درايف/إيميل) — بتستخدمها المهمة اليومية على الجهاز
   // عشان ما نبعتش نفس النسخة مرتين لما GitHub Actions بيشتغل في نفس الوقت.
   const localOnly = process.argv.includes('--local-only') || process.env.BACKUP_LOCAL_ONLY === '1';
+  // المهمة المحلية بتتخطى تليجرام عشان GitHub Actions هو اللي يبعت الرسالة اليومية — من غير تكرار.
+  const noTelegram = process.argv.includes('--no-telegram') || process.env.BACKUP_NO_TELEGRAM === '1';
   // الـ cron بيشتغل مرتين (22:00 و23:00 UTC) عشان التوقيت الصيفي/الشتوي في مصر.
   // السكربت نفسه بيقرر إذا كانت الساعة 1 بتوقيت القاهرة.
   if (!forced && process.env.GITHUB_EVENT_NAME === 'schedule' && cairoHour(new Date()) !== 1) {
@@ -140,13 +142,15 @@ async function main() {
   const results = localOnly
     ? [{ status: 'fulfilled', value: { name: 'الرفع', skipped: true, reason: 'وضع النسخة المحلية فقط (--local-only)' } }]
     : await Promise.allSettled([
-        run('تيليجرام', () => sendToTelegram({
-          token: process.env.TELEGRAM_BOT_TOKEN,
-          chatId: process.env.TELEGRAM_CHAT_ID,
-          filename,
-          bytes: encoded,
-          caption: telegramCaption(payload, encoded.length, Boolean(passphrase))
-        })),
+        run('تيليجرام', () => (noTelegram
+          ? { skipped: true, reason: 'متخطّى (--no-telegram)' }
+          : sendToTelegram({
+              token: process.env.TELEGRAM_BOT_TOKEN,
+              chatId: process.env.TELEGRAM_CHAT_ID,
+              filename,
+              bytes: encoded,
+              caption: telegramCaption(payload, encoded.length, Boolean(passphrase))
+            }))),
         run('Google Drive', () => driveUpload(filename, encoded, summary, localFile)),
         run('الإيميل', () => sendMail({
           apiKey: process.env.RESEND_API_KEY,
