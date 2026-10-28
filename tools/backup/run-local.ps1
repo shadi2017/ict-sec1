@@ -1,6 +1,6 @@
 # Daily local backup runner (used by Windows Task Scheduler: task "ICT-Daily-Backup").
-# Saves an encrypted copy of the Supabase database into .data\backups\ and writes a log.
-# Cloud uploads are left to the GitHub Actions workflow (.github/workflows/backup.yml).
+# Saves an encrypted copy of the Supabase database into .data\backups\, then uploads
+# the same encrypted file to Telegram and Google Drive (rclone), and writes a log.
 $ErrorActionPreference = 'Stop'
 
 $root   = 'E:\simulation\ict-sec1'
@@ -16,7 +16,7 @@ Add-Content -Path $log -Value "[$stamp] --- start ---" -Encoding UTF8
 
 Push-Location $root
 try {
-    $output = & $node $backup --force --local-only 2>&1
+    $output = & $node $backup --force 2>&1
     $code = $LASTEXITCODE
     foreach ($line in $output) { Add-Content -Path $log -Value $line -Encoding UTF8 }
 } catch {

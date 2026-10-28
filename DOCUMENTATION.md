@@ -218,7 +218,7 @@ npm start            # node server.mjs
 - **المصدر:** `students` + `devices` + `events` عبر Supabase REST (صفحات 1000 صف).
 - **التشفير:** gzip ثم AES-256-GCM بمفتاح من `scrypt(BACKUP_PASSPHRASE)` — البيانات فيها
   أرقام موبايلات وهاشات، فمفيش نسخة بتطلع من غير تشفير.
-- **الوجهات:** تليجرام (Bot API) · Google Drive (Service Account) · إيميل (Resend) ·
+- **الوجهات:** تليجرام (Bot API) · Google Drive (rclone/OAuth) · إيميل (Resend) ·
   نسخة محلية في `.data/backups/` (30 يوم) + Actions artifact (14 يوم).
 - **الاسترجاع:** `node tools/backup/restore.mjs <الملف>` → `data.json` + `restore.sql`
   جاهز للصق في Supabase SQL Editor.
@@ -298,7 +298,7 @@ npm start            # node server.mjs
 |---|---|---|
 | **محلي** | نسخة مشفّرة كل يوم 1:00 ص في `.data\backups\` (آخر 30 يوم) | مهمة Windows: `ICT-Daily-Backup` |
 | **تيليجرام** | ملف مشفّر + ملخص يومي | `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` |
-| **Google Drive** | ملف مشفّر في مجلد مخصص (آخر 30 يوم) | `GDRIVE_SA_JSON` + `GDRIVE_FOLDER_ID` |
+| **Google Drive** | ملف مشفّر في مجلد مخصص (آخر 30 يوم) | `RCLONE_REMOTE` + `RCLONE_FOLDER` (rclone/OAuth) |
 | **GitHub Actions** | نسخة سحابية احتياطية (14 يوم) | `.github/workflows/backup.yml` |
 
 - التشفير **AES-256-GCM** بمفتاح مشتق من `BACKUP_PASSPHRASE` — ممنوع رفع نسخة غير مشفّرة.

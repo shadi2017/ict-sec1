@@ -18,6 +18,7 @@ import { dumpAll, TABLES } from './lib/dump.mjs';
 import { encrypt } from './lib/box.mjs';
 import { sendToTelegram } from './lib/telegram.mjs';
 import { loadServiceAccount, getAccessToken, uploadToDrive, pruneDrive } from './lib/drive.mjs';
+import { rcloneUpload, rclonePrune } from './lib/rclone.mjs';
 import { sendMail } from './lib/mail.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -140,7 +141,7 @@ async function main() {
           bytes: encoded,
           caption: telegramCaption(payload, encoded.length, Boolean(passphrase))
         })),
-        run('Google Drive', () => driveUpload(filename, encoded, summary)),
+        run('Google Drive', () => driveUpload(filename, encoded, summary, localFile)),
         run('الإيميل', () => sendMail({
           apiKey: process.env.RESEND_API_KEY,
           from: process.env.BACKUP_EMAIL_FROM,
@@ -185,10 +186,26 @@ async function run(name, fn) {
   }
 }
 
-async function driveUpload(filename, bytes, summary) {
+async function driveUpload(filename, bytes, summary, localFile) {
+  // 1) rclone (OAuth بحسابك الشخصي) — ده المسار المفضّل لأنه بيشتغل مع My Drive.
+  const remote = process.env.RCLONE_REMOTE;
+  if (remote) {
+    const folder = process.env.RCLONE_FOLDER || '';
+    const uploaded = await rcloneUpload({ remote, folder, localFile, filename });
+    let pruned = { deleted: [] };
+    try {
+      pruned = await rclonePrune({ remote, folder, keepDays: DRIVE_KEEP_DAYS, prefix: FILE_PREFIX });
+    } catch (error) {
+      log(`   تحذير: تنضيف Drive القديم فشل (${error.message}) — الملف الجديد اترفع عادي.`);
+    }
+    summary.driveLink = `https://drive.google.com/drive/folders/${process.env.GDRIVE_FOLDER_ID || ''}`.replace(/\/$/, '');
+    return { ok: true, ...uploaded, pruned: pruned.deleted.length };
+  }
+
+  // 2) حساب خدمة (Service Account) — بيشتغل بس مع Shared Drives (Workspace).
   const raw = process.env.GDRIVE_SA_JSON;
   const folderId = process.env.GDRIVE_FOLDER_ID;
-  if (!raw) return { skipped: true, reason: 'GDRIVE_SA_JSON مش مضبوط' };
+  if (!raw) return { skipped: true, reason: 'RCLONE_REMOTE أو GDRIVE_SA_JSON مش مضبوطين' };
 
   const account = loadServiceAccount(raw);
   const accessToken = await getAccessToken(account);

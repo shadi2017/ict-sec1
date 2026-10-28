@@ -28,7 +28,33 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Check secrets
+        id: check
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        run: |
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "أسرار الباكاب مش متظبطة — تخطي اليوم (من غير فشل)."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup rclone (optional — Drive upload)
+        if: steps.check.outputs.skip != 'true'
+        env:
+          RCLONE_CONF_B64: ${{ secrets.RCLONE_CONF_B64 }}
+        run: |
+          if [ -z "$RCLONE_CONF_B64" ]; then
+            echo "RCLONE_CONF_B64 مش مضبوط — الرفع على Drive هيتخطى في GitHub Actions."
+            exit 0
+          fi
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq rclone
+          mkdir -p ~/.config/rclone
+          printf '%s' "$RCLONE_CONF_B64" | base64 -d > ~/.config/rclone/rclone.conf
+          chmod 600 ~/.config/rclone/rclone.conf
+
       - name: Run backup
+        if: steps.check.outputs.skip != 'true'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
@@ -37,8 +63,8 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
-          GDRIVE_SA_JSON: ${{ secrets.GDRIVE_SA_JSON }}
-          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+          RCLONE_REMOTE: ${{ secrets.RCLONE_REMOTE }}
+          RCLONE_FOLDER: ${{ secrets.RCLONE_FOLDER }}
 
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           BACKUP_EMAIL_TO: ${{ secrets.BACKUP_EMAIL_TO }}
@@ -47,7 +73,7 @@ jobs:
 
       # نسخة رابعة احتياطية جوه GitHub نفسه (بتتمسح تلقائيًا بعد 14 يوم).
       - name: Keep a copy in Actions artifacts
-        if: always()
+        if: always() && steps.check.outputs.skip != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ict-db-${{ github.run_number }}

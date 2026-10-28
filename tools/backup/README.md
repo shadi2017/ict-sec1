@@ -32,8 +32,8 @@ GitHub Actions  ──►  tools/backup/backup.mjs
 
 ## الباكاب المحلي اليومي على الويندوز
 
-بالإضافة للـ GitHub Actions، في **مهمة مجدولة على الجهاز** بتحفظ نسخة مشفّرة محليًا
-كل يوم **1:00 صباحًا** من غير ما ترفع على أي مكان (عشان ما نكررش نفس النسخة على تليجرام/درايف).
+بالإضافة للـ GitHub Actions، في **مهمة مجدولة على الجهاز** بتعمل نفس النسخة المشفّرة
+كل يوم **1:00 صباحًا** (محلي + تليجرام + Drive) وتكتب سجل بالنتيجة.
 
 | البند | القيمة |
 |---|---|
@@ -66,13 +66,14 @@ schtasks /Delete /TN "ICT-Daily-Backup" /F           # حذف
 | الملف | وظيفته |
 |---|---|
 | `backup.mjs` | السكربت الرئيسي (سحب → تشفير → رفع) |
-| `run-local.ps1` | مشغّل الباكاب المحلي للمهمة المجدولة (بدون رفع) |
+| `run-local.ps1` | مشغّل المهمة المجدولة (نسخة كاملة + سجل) |
 | `telegram-id.mjs` | مساعد لجلب `TELEGRAM_CHAT_ID` من التوكن (`npm run telegram:id`) |
-| `drive-setup.mjs` | يظبط `GDRIVE_SA_JSON` + `GDRIVE_FOLDER_ID` في `.env` من ملف المفتاح (`npm run backup:drive`) |
+| `drive-setup.mjs` | بديل لحساب الخدمة (Shared Drives فقط) — `npm run backup:drive` |
 | `lib/dump.mjs` | قراءة جداول Supabase عبر REST |
 | `lib/box.mjs` | تشفير/فك تشفير AES-256-GCM + scrypt |
 | `lib/telegram.mjs` | إرسال الملف على تليجرام |
-| `lib/drive.mjs` | رفع/تنضيف Google Drive بحساب خدمة |
+| `lib/rclone.mjs` | رفع/تنضيف Drive عبر rclone (OAuth) |
+| `lib/drive.mjs` | رفع/تنضيف Google Drive بحساب خدمة (Shared Drives) |
 | `lib/mail.mjs` | إرسال الإيميل عبر Resend |
 | `restore.mjs` | فك التشفير + توليد `restore.sql` |
 | `.github/workflows/backup.yml` | المجدول (cron) |
@@ -108,33 +109,54 @@ BACKUP_PASSPHRASE=اكتب-هنا-نص-طويل-عشوائي
    ده `TELEGRAM_CHAT_ID`.
    - لو عايز النسخ تروح لقناة: ضيف البوت أدمن في القناة، وحدد الـ id بتاعها (بيبدأ بـ `-100`).
 
-### 4) Google Drive (حساب خدمة)
+### 4) Google Drive (rclone — OAuth بحسابك)
 
-1. [console.cloud.google.com](https://console.cloud.google.com) → **New Project** → اسم أي حاجة.
-2. **APIs & Services → Library** → دوّر على **Google Drive API** → **Enable**.
-3. **IAM & Admin → Service Accounts → Create Service Account** → اسم أي حاجة → **Done**.
-4. من الصفحة بتاعتها: **Keys → Add key → Create new key → JSON** → هيتنزّل ملف.
-5. افتح الملف وهات `client_email` (شكله `xxx@xxx.iam.gserviceaccount.com`).
-6. في Google Drive: اعمل مجلد جديد (مثلاً `ICT Backups`) → **Share** → الصق الإيميل ده →
-   **Editor** → Send.
-7. هات الـ folder id من رابط المجلد: `drive.google.com/drive/folders/`**`<ده هو>`**.
-8. حوّل ملف الـ JSON لـ base64 (أسهل طريقة إنك تلصقه كسر واحد):
+> ⚠️ **حساب الخدمة (Service Account) مش هينفع** مع الـ My Drive العادي — جوجل بترفض
+> الرفع منه (`storageQuotaExceeded`) لأنه مالوش مساحة تخزين. الحل ده بيشتغل بس مع
+> **Shared Drives** في Google Workspace المدفوع.
+> عشان كده بنستخدم **rclone** بحسابك الشخصي.
+
+1. نزّل rclone:
 
    ```powershell
-   [Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\path\to\key.json"))
+   scoop install rclone
    ```
 
-   - `GDRIVE_SA_JSON` = الناتج (أو محتوى الـ JSON نفسه، السكربت بيقبل الاتنين).
-   - `GDRIVE_FOLDER_ID` = الـ id بتاع المجلد.
+2. في Google Drive: اعمل مجلد اسمه `ICT Backups`.
 
-> 💡 حط ملف الـ JSON في `.secrets/gdrive-sa.json` (المجلد ده **متجاهل في Git**) بدل ما تسيبه في Downloads.
->
-> ⚡ أسرع طريقة: بعد ما تحط الملف شغّل
-> `npm run backup:drive -- --folder <FOLDER_ID>`
-> — هيحدّث `.env` لوحده ويطبع إيميل حساب الخدمة اللي تشارك المجلد معاه.
+3. سجّل الدخول مرة واحدة (هيفتح المتصفح):
 
-> ⚠️ لو ظهر خطأ `storageQuotaExceeded`: تأكد إن المجلد **مشترك** مع الإيميل (خطوة 6)،
-> وإن حساب الخدمة مش بيحاول يرفع على Drive بتاعه.
+   ```powershell
+   rclone config create gdrive drive scope=drive
+   rclone config reconnect gdrive:
+   ```
+
+   - لو سألك عن `shared client_id` اختار **Yes** (`y`).
+   - في المتصفح اختار حساب جوجل بتاع الباكاب → **Allow**.
+   - التأكيد: `rclone lsd gdrive:` لازم يعرض مجلداتك.
+
+4. في `.env`:
+
+   ```
+   RCLONE_REMOTE=gdrive
+   RCLONE_FOLDER=ICT Backups
+   ```
+
+5. جرّب:
+
+   ```powershell
+   npm run backup:force
+   ```
+
+- التوكن محفوظ في `%APPDATA%\rclone\rclone.conf` وبيتجدد لوحده — مش محتاج تعمل
+  الدخول ده تاني.
+- **GitHub Actions:** ضيف secret اسمه `RCLONE_CONF_B64` = base64 لملف `rclone.conf`
+  (`[Convert]::ToBase64String([IO.File]::ReadAllBytes("$env:APPDATA\rclone\rclone.conf"))`)
+  + `RCLONE_REMOTE` + `RCLONE_FOLDER`.
+
+> ملحوظة: rclone بيستخدم حاليًا الـ client_id المشترك بتاعه، وجوجل هتوقفه خلال 2026.
+> لو الرفع وقف فجأة، اتبع [الصفحة دي](https://rclone.org/drive/#making-your-own-client-id)
+> لإنشاء client_id خاص، وبعدها `rclone config update gdrive client_id=... client_secret=...`.
 
 ### 5) الإيميل (Resend)
 
@@ -156,8 +178,9 @@ BACKUP_PASSPHRASE=اكتب-هنا-نص-طويل-عشوائي
 | `BACKUP_PASSPHRASE` | ✅ | كلمة سر التشفير |
 | `TELEGRAM_BOT_TOKEN` | اختياري | توكن البوت |
 | `TELEGRAM_CHAT_ID` | اختياري | id الشات/القناة |
-| `GDRIVE_SA_JSON` | اختياري | ملف حساب الخدمة (base64 أو JSON) |
-| `GDRIVE_FOLDER_ID` | اختياري | id مجلد Drive |
+| `RCLONE_CONF_B64` | اختياري | ملف rclone.conf كـ base64 (للرفع على Drive من GitHub) |
+| `RCLONE_REMOTE` | اختياري | اسم الريموت (مثلاً `gdrive`) |
+| `RCLONE_FOLDER` | اختياري | اسم المجلد (مثلاً `ICT Backups`) |
 | `RESEND_API_KEY` | اختياري | مفتاح Resend |
 | `BACKUP_EMAIL_TO` | اختياري | المستلم |
 | `BACKUP_EMAIL_FROM` | اختياري | المرسل |
@@ -188,7 +211,7 @@ npm run backup:force
 ### اختبار بدون رفع
 
 ```bash
-npm run backup:force
+npm run backup:local
 ```
 لو مفيش وجهات مضبوطة، هيقولك `متخطّى` ويحفظ نسخة محلية بس.
 
@@ -197,7 +220,8 @@ npm run backup:force
 ```bash
 npm run backup:local
 ```
-ودي نفس اللي المهمة المجدولة بتشغّلها.
+
+المهمة المجدولة بتشغّل النسخة الكاملة (`--force`) — مش `--local-only`.
 
 ---
 
@@ -237,7 +261,8 @@ node tools/backup/restore.mjs <الملف> --pass "كلمة السر"
 |---|---|
 | `TELEGRAM … chat not found` | مبعتتش `/start` للبوت، أو الـ chat id غلط |
 | `Google رفض توثيق حساب الخدمة` | الـ JSON ناقص/تالف أو Drive API مش مفعّل |
-| `رفع الملف على Drive فشل: storageQuotaExceeded` | المجلد مش مشترك مع إيميل حساب الخدمة |
+| `storageQuotaExceeded` | حساب خدمة على My Drive — استخدم rclone (خطوة 4) |
+| `rclone: couldn't find section in config file` | `RCLONE_REMOTE` غلط أو `rclone config` ما اتعملهوش |
 | `إرسال الإيميل فشل: 403` | الدومين مش متحقق، أو المستلم مش إيميل صاحب حساب Resend |
 | `قراءة جدول … فشلت (401)` | `SUPABASE_SERVICE_KEY` غلط أو منتهي |
 | الـ workflow بيقول `مش الساعة 1 … تخطي` | ده طبيعي: الـ cron بيشتغل مرتين، والنسخة بتحصل مرة واحدة |
