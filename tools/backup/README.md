@@ -30,11 +30,44 @@ GitHub Actions  ──►  tools/backup/backup.mjs
 
 ---
 
+## الباكاب المحلي اليومي على الويندوز
+
+بالإضافة للـ GitHub Actions، في **مهمة مجدولة على الجهاز** بتحفظ نسخة مشفّرة محليًا
+كل يوم **1:00 صباحًا** من غير ما ترفع على أي مكان (عشان ما نكررش نفس النسخة على تليجرام/درايف).
+
+| البند | القيمة |
+|---|---|
+| اسم المهمة | `ICT-Daily-Backup` |
+| الموعد | يوميًا 1:00 ص (بتوقيت الجهاز) |
+| الأمر | `tools\backup\run-local.ps1` |
+| مكان النسخ | `.data\backups\` (آخر 30 يوم) |
+| السجل | `.data\backups\backup.log` |
+
+### أوامر مفيدة
+
+```powershell
+schtasks /Query /TN "ICT-Daily-Backup" /FO LIST /V   # الحالة وآخر نتيجة
+schtasks /Run   /TN "ICT-Daily-Backup"               # تشغيل فوري
+schtasks /Change /TN "ICT-Daily-Backup" /DISABLE     # إيقاف مؤقت
+schtasks /Change /TN "ICT-Daily-Backup" /ENABLE      # رجوع
+schtasks /Delete /TN "ICT-Daily-Backup" /F           # حذف
+```
+
+- المهمة بتشتغل **لما المستخدم يكون داخل (Interactive)**. لو الجهاز مقفول/مطفي،
+  هتشتغل أول ما تدخل (StartWhenAvailable) — بس مش هتشتغل لو محدش مسجّل دخول.
+- عشان تشتغل من غير تسجيل دخول لازم تتسجل بحساب فيه صلاحية
+  (Task Scheduler → Run whether user is logged on or not) — وده محتاج Admin.
+- النسخة المحلية **مشفّرة** بنفس `BACKUP_PASSPHRASE`.
+
+---
+
 ## الملفات
 
 | الملف | وظيفته |
 |---|---|
 | `backup.mjs` | السكربت الرئيسي (سحب → تشفير → رفع) |
+| `run-local.ps1` | مشغّل الباكاب المحلي للمهمة المجدولة (بدون رفع) |
+| `telegram-id.mjs` | مساعد لجلب `TELEGRAM_CHAT_ID` من التوكن (`npm run telegram:id`) |
 | `lib/dump.mjs` | قراءة جداول Supabase عبر REST |
 | `lib/box.mjs` | تشفير/فك تشفير AES-256-GCM + scrypt |
 | `lib/telegram.mjs` | إرسال الملف على تليجرام |
@@ -92,6 +125,8 @@ BACKUP_PASSPHRASE=اكتب-هنا-نص-طويل-عشوائي
 
    - `GDRIVE_SA_JSON` = الناتج (أو محتوى الـ JSON نفسه، السكربت بيقبل الاتنين).
    - `GDRIVE_FOLDER_ID` = الـ id بتاع المجلد.
+
+> 💡 حط ملف الـ JSON في `.secrets/gdrive-sa.json` (المجلد ده **متجاهل في Git**) بدل ما تسيبه في Downloads.
 
 > ⚠️ لو ظهر خطأ `storageQuotaExceeded`: تأكد إن المجلد **مشترك** مع الإيميل (خطوة 6)،
 > وإن حساب الخدمة مش بيحاول يرفع على Drive بتاعه.
@@ -151,6 +186,13 @@ npm run backup:force
 npm run backup:force
 ```
 لو مفيش وجهات مضبوطة، هيقولك `متخطّى` ويحفظ نسخة محلية بس.
+
+### نسخة محلية فقط (من غير رفع)
+
+```bash
+npm run backup:local
+```
+ودي نفس اللي المهمة المجدولة بتشغّلها.
 
 ---
 

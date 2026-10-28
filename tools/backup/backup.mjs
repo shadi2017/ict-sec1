@@ -69,6 +69,9 @@ async function main() {
   loadEnvFile();
 
   const forced = process.argv.includes('--force') || process.env.BACKUP_FORCE === '1';
+  // نسخة محلية بس (من غير رفع على تليجرام/درايف/إيميل) — بتستخدمها المهمة اليومية على الجهاز
+  // عشان ما نبعتش نفس النسخة مرتين لما GitHub Actions بيشتغل في نفس الوقت.
+  const localOnly = process.argv.includes('--local-only') || process.env.BACKUP_LOCAL_ONLY === '1';
   // الـ cron بيشتغل مرتين (22:00 و23:00 UTC) عشان التوقيت الصيفي/الشتوي في مصر.
   // السكربت نفسه بيقرر إذا كانت الساعة 1 بتوقيت القاهرة.
   if (!forced && process.env.GITHUB_EVENT_NAME === 'schedule' && cairoHour(new Date()) !== 1) {
@@ -126,26 +129,28 @@ async function main() {
     targets: {}
   };
 
-  log('3/4 الرفع على الوجهات…');
-  const results = await Promise.allSettled([
-    run('تيليجرام', () => sendToTelegram({
-      token: process.env.TELEGRAM_BOT_TOKEN,
-      chatId: process.env.TELEGRAM_CHAT_ID,
-      filename,
-      bytes: encoded,
-      caption: telegramCaption(payload, encoded.length, Boolean(passphrase))
-    })),
-    run('Google Drive', () => driveUpload(filename, encoded, summary)),
-    run('الإيميل', () => sendMail({
-      apiKey: process.env.RESEND_API_KEY,
-      from: process.env.BACKUP_EMAIL_FROM,
-      to: process.env.BACKUP_EMAIL_TO,
-      subject: `نسخة احتياطية ICT — ${cairoDate(now)}`,
-      html: emailBody(payload, filename, encoded.length, Boolean(passphrase)),
-      filename,
-      bytes: encoded
-    }))
-  ]);
+  log(localOnly ? '3/4 وضع محلي فقط — تخطي الرفع.' : '3/4 الرفع على الوجهات…');
+  const results = localOnly
+    ? [{ status: 'fulfilled', value: { name: 'الرفع', skipped: true, reason: 'وضع النسخة المحلية فقط (--local-only)' } }]
+    : await Promise.allSettled([
+        run('تيليجرام', () => sendToTelegram({
+          token: process.env.TELEGRAM_BOT_TOKEN,
+          chatId: process.env.TELEGRAM_CHAT_ID,
+          filename,
+          bytes: encoded,
+          caption: telegramCaption(payload, encoded.length, Boolean(passphrase))
+        })),
+        run('Google Drive', () => driveUpload(filename, encoded, summary)),
+        run('الإيميل', () => sendMail({
+          apiKey: process.env.RESEND_API_KEY,
+          from: process.env.BACKUP_EMAIL_FROM,
+          to: process.env.BACKUP_EMAIL_TO,
+          subject: `نسخة احتياطية ICT — ${cairoDate(now)}`,
+          html: emailBody(payload, filename, encoded.length, Boolean(passphrase)),
+          filename,
+          bytes: encoded
+        }))
+      ]);
 
   for (const result of results) {
     const value = result.status === 'fulfilled' ? result.value : { ok: false, error: String(result.reason?.message || result.reason) };

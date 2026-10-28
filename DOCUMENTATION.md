@@ -292,7 +292,28 @@ npm start            # node server.mjs
 
 ---
 
-## 12) الخطوات القادمة
+## 12) النسخ الاحتياطي اليومي
+
+| الوجهة | إيه بيحصل | الإعداد |
+|---|---|---|
+| **محلي** | نسخة مشفّرة كل يوم 1:00 ص في `.data\backups\` (آخر 30 يوم) | مهمة Windows: `ICT-Daily-Backup` |
+| **تيليجرام** | ملف مشفّر + ملخص يومي | `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` |
+| **Google Drive** | ملف مشفّر في مجلد مخصص (آخر 30 يوم) | `GDRIVE_SA_JSON` + `GDRIVE_FOLDER_ID` |
+| **GitHub Actions** | نسخة سحابية احتياطية (14 يوم) | `.github/workflows/backup.yml` |
+
+- التشفير **AES-256-GCM** بمفتاح مشتق من `BACKUP_PASSPHRASE` — ممنوع رفع نسخة غير مشفّرة.
+- الاسترجاع: `node tools/backup/restore.mjs <الملف>` → يطلّع `data.json` + `restore.sql`.
+- التفاصيل الكاملة: [`tools/backup/README.md`](tools/backup/README.md).
+
+```powershell
+npm run backup:force      # نسخة + رفع على كل الوجهات المضبوطة
+npm run backup:local      # نسخة محلية بس
+npm run backup:restore    # استرجاع
+```
+
+---
+
+## 13) الخطوات القادمة
 
 - [x] الترجمة الإنجليزية الكاملة (دروس + اختبارات + مشاريع + معامل + ألعاب + ديمو).
 - [x] الحسابات: تسجيل → تفعيل → حد جهازين → تحليلات → لوحة مدرس.
@@ -305,7 +326,7 @@ npm start            # node server.mjs
 
 ---
 
-## 13) آخر تغييرات (Git)
+## 14) آخر تغييرات (Git)
 
 ```
 24dd6ae  Pick the data store at request time instead of load time
