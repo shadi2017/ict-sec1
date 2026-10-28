@@ -12,6 +12,7 @@
     "backup": "node tools/backup/backup.mjs",
     "backup:force": "node tools/backup/backup.mjs --force",
     "backup:local": "node tools/backup/backup.mjs --force --local-only",
+    "backup:drive": "node tools/backup/drive-setup.mjs",
     "backup:restore": "node tools/backup/restore.mjs",
     "telegram:id": "node tools/backup/telegram-id.mjs"
   }

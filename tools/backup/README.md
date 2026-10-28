@@ -68,6 +68,7 @@ schtasks /Delete /TN "ICT-Daily-Backup" /F           # حذف
 | `backup.mjs` | السكربت الرئيسي (سحب → تشفير → رفع) |
 | `run-local.ps1` | مشغّل الباكاب المحلي للمهمة المجدولة (بدون رفع) |
 | `telegram-id.mjs` | مساعد لجلب `TELEGRAM_CHAT_ID` من التوكن (`npm run telegram:id`) |
+| `drive-setup.mjs` | يظبط `GDRIVE_SA_JSON` + `GDRIVE_FOLDER_ID` في `.env` من ملف المفتاح (`npm run backup:drive`) |
 | `lib/dump.mjs` | قراءة جداول Supabase عبر REST |
 | `lib/box.mjs` | تشفير/فك تشفير AES-256-GCM + scrypt |
 | `lib/telegram.mjs` | إرسال الملف على تليجرام |
@@ -127,6 +128,10 @@ BACKUP_PASSPHRASE=اكتب-هنا-نص-طويل-عشوائي
    - `GDRIVE_FOLDER_ID` = الـ id بتاع المجلد.
 
 > 💡 حط ملف الـ JSON في `.secrets/gdrive-sa.json` (المجلد ده **متجاهل في Git**) بدل ما تسيبه في Downloads.
+>
+> ⚡ أسرع طريقة: بعد ما تحط الملف شغّل
+> `npm run backup:drive -- --folder <FOLDER_ID>`
+> — هيحدّث `.env` لوحده ويطبع إيميل حساب الخدمة اللي تشارك المجلد معاه.
 
 > ⚠️ لو ظهر خطأ `storageQuotaExceeded`: تأكد إن المجلد **مشترك** مع الإيميل (خطوة 6)،
 > وإن حساب الخدمة مش بيحاول يرفع على Drive بتاعه.
